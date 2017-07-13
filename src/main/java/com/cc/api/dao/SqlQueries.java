@@ -1,0 +1,48 @@
+package com.cc.api.dao;
+
+public interface SqlQueries {
+
+    // USER
+    String SQL_IS_USERNAME_EXIST =
+            "SELECT NVL(MAX(1), 0) ISEXIST FROM BASE_USER WHERE LOWER(USERNAME) = ?";
+
+    String SQL_GET_LOSID_BY_USERID =
+            "SELECT LOSID FROM CC_USER WHERE USERID = ?";
+
+    String SQL_GET_USER_BY_ID =
+            "SELECT USERID, USERNAME, FIRSTNAME, LASTNAME, EMAIL, ISACTIVE, ISLOCKEDOUT, COMMENTS " +
+                    "FROM BASE_USER WHERE USERID = ?";
+
+    // ACCOUNT
+    String SQL_IS_ACCTNUM_EXIST =
+            "SELECT NVL(MAX(1), 0) ISEXIST FROM AM_CREDCOACCT WHERE ACCTNUM = ?";
+
+    String SQL_GET_ACCT_NUM_BY_USERID =
+            "SELECT ACCT_NUM FROM CC_USER_ACCT WHERE USERID = ?";
+
+    String SQL_GET_ACCT_BY_ID =
+            "SELECT ACCTNUM, CUSTNUM, ACCTNAME, STATUSENUM " +
+                    "FROM AM_CREDCOACCT WHERE ACCTNUM =  ?";
+
+    String SQL_GET_ACCT_BY_USERID =
+            "SELECT ACCTNUM, CUSTNUM, ACCTNAME, STATUSENUM " +
+                    "FROM CC_USER_ACCT U, AM_CREDCOACCT A " +
+                    "WHERE U.ACCT_NUM = A.ACCTNUM AND USERID = ?";
+
+    // PASSWORD
+    String SQL_GET_PWD_RESET_USERID =
+            "SELECT USERID FROM CREDCOCONNECT_CDE.BASE_USER " +
+                    "WHERE ISACTIVE = 1 AND ISLOCKEDOUT = 0 AND LOWER(USERNAME) = ?";
+
+    String SQL_GET_PASSWORD_DETAILS =
+            "SELECT PASSWORDID, ISTEMPORARY, " +
+            "   TO_CHAR(NEW_TIME(TO_DATE (" +
+            "   CASE ISTEMPORARY " +
+            "       WHEN 0 THEN CREATEDDATEUTC + 90 " +
+            "       WHEN 1 THEN CREATEDDATEUTC + 3 " +
+            "       WHEN 2 THEN CREATEDDATEUTC + 14" +
+            "   END ), 'GMT', 'PST'), 'MON DD, YYYY') AS EXPIRYDATE " +
+            "FROM CC_PASSWORDHISTORY " +
+            "WHERE PASSWORDID = ( " +
+            "   SELECT MAX(PASSWORDID) FROM CC_PASSWORDHISTORY WHERE USERID = ?)";
+}
