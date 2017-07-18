@@ -31,4 +31,9 @@ public interface ResponseMessages {
     String PWM_AUTH_TOKEN_ERROR = "Authentication token error!";
 
     String PWM_AUTH_TOKEN_TIMEOUT = "Reset password link timeout! \nPlease submit a new password reset request.";
+
+    String SECURITY_PROFILE_CREATED = "Security profile created successfully.";
+
+    String SECURITY_PROFILE_DELETED = "Security profile removed successfully.";
+
 }

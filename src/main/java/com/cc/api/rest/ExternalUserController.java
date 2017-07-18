@@ -1,8 +1,11 @@
 package com.cc.api.rest;
 
 import com.cc.api.dao.PasswordDao;
+import com.cc.api.dao.SecretQuestionDao;
 import com.cc.api.dao.UserDao;
 import com.cc.api.entity.ChangePwdModel;
+import com.cc.api.entity.KeyValuePair;
+import com.cc.api.entity.SecurityQnA;
 import com.cc.api.entity.UserDetails;
 import com.cc.api.util.AESEncoder;
 import com.cc.api.util.RecaptchaValidator;
@@ -22,8 +25,9 @@ import java.io.IOException;
 @RequestMapping(value = "/external")
 public class ExternalUserController implements ResponseMessages {
 
-    @Autowired
-    private RecaptchaValidator recaptchaValidator;
+    @Value("${pwm.token_timeout_mins}")
+    private int FORGOT_PWD_TIMEOUT_MINS;
+    private static final Logger logger = LoggerFactory.getLogger(ExternalUserController.class);
 
     @Autowired
     private UserDao userDao;
@@ -31,13 +35,14 @@ public class ExternalUserController implements ResponseMessages {
     @Autowired
     private PasswordDao passwordDao;
 
-    @Value("${pwm.token_timeout_mins}")
-    private int FORGOT_PWD_TIMEOUT_MINS;
+    @Autowired
+    private SecretQuestionDao secretQuestionDao;
 
-    private static final Logger logger = LoggerFactory.getLogger(ExternalUserController.class);
+    @Autowired
+    private RecaptchaValidator recaptchaValidator;
 
-    @RequestMapping(value = "/users", method = RequestMethod.POST)
-    public ResponseEntity<String> create(@RequestBody UserDetails user) throws Exception {
+    @RequestMapping(value = "/create-user", method = RequestMethod.POST)
+    public ResponseEntity<String> createUser(@RequestBody UserDetails user) throws Exception {
         logger.info("External, Create new user: " + user.getUser().getUsername());
 
         // I'm not robot check.
@@ -49,7 +54,7 @@ public class ExternalUserController implements ResponseMessages {
         return new ResponseEntity(USER_CREATED_SUCCESS, HttpStatus.CREATED);
     }
 
-    @RequestMapping(value = "/pwm-reset-pwd")
+    @RequestMapping(value = "/reset-pwd")
     public ResponseEntity<String> reset(@RequestParam String recaptcha, @RequestParam String username,
                                         @RequestParam String url) throws Exception {
         logger.info("External, reset password: " + username);
@@ -80,7 +85,7 @@ public class ExternalUserController implements ResponseMessages {
         return new ResponseEntity(PWM_PWD_REST_SUCCESS, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/pwm-change-pwd", method = RequestMethod.POST)
+    @RequestMapping(value = "/change-pwd", method = RequestMethod.POST)
     public ResponseEntity<String> reset(@RequestParam String recaptcha, @RequestBody ChangePwdModel model) throws Exception {
 
         logger.info("External, change password: " + model.getUsername());
@@ -120,6 +125,36 @@ public class ExternalUserController implements ResponseMessages {
 
         logger.info("Change password success, username: " + model.getUsername());
         return new ResponseEntity(PWM_PWD_CHANGE_SUCCESS, HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/security-profile", method = RequestMethod.POST)
+    public ResponseEntity<String> createSecurityProfile(@RequestBody SecurityQnA model) throws Exception {
+        logger.info("External, setup security profile: " + model.getUserid());
+        secretQuestionDao.createSecrurityProfile(model);
+        logger.info("security profile created successfully.");
+        return new ResponseEntity(SECURITY_PROFILE_CREATED, HttpStatus.CREATED);
+    }
+
+    @RequestMapping(value = "/security-profile/{id}", method = RequestMethod.DELETE)
+    public ResponseEntity<String> deleteSecurityProfile(@PathVariable long id) throws Exception {
+        secretQuestionDao.removeSecrurityProfile(id);
+        return new ResponseEntity(SECURITY_PROFILE_DELETED, HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/has-security-profile/{id}")
+    public ResponseEntity<Boolean> hasSecurityProfile(@PathVariable long id) throws Exception {
+        return new ResponseEntity(secretQuestionDao.hasSecurityProfile(id), HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/security-challenge/{id}")
+    public ResponseEntity<KeyValuePair> getChallengeQuestion(@PathVariable long id) throws Exception {
+        KeyValuePair pair = secretQuestionDao.getChallengeQuestion(id);
+        return new ResponseEntity(pair, HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/security-challenge/{id}", method = RequestMethod.POST)
+    public ResponseEntity<Boolean> validateChallengeAnswer(@PathVariable long id, @RequestBody KeyValuePair body) throws Exception {
+        return new ResponseEntity(secretQuestionDao.validateAnswer(id, body), HttpStatus.OK);
     }
 
     // I'm not robot check.
